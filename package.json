@@ -15,6 +15,7 @@
     "babel-preset-expo": "^56.0.14",
     "expo": "~56.0.8",
     "expo-status-bar": "~56.0.4",
+    "firebase": "^12.15.0",
     "nativewind": "^4.2.4",
     "prettier-plugin-tailwindcss": "^0.5.14",
     "react": "19.2.3",

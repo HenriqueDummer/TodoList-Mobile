@@ -1,4 +1,4 @@
-import { useLayoutEffect } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
@@ -15,10 +15,15 @@ import { AuthStackParamList } from '@/navigation/types'
 import { AppLogo } from '@/components/AppLogo'
 import { Input } from '@/components/Input'
 import { GradientButton } from '@/components/CustomButton'
+import { useAuth } from '@/contexts/AuthContext'
+import { getAuthErrorMessage } from '@/utils/authErrors'
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>
 
 export function RegisterScreen({ navigation }: Props) {
+  const { register } = useAuth()
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const {
     control,
     handleSubmit,
@@ -32,9 +37,17 @@ export function RegisterScreen({ navigation }: Props) {
   }, [navigation])
 
   async function onSubmit(data: RegisterFormData) {
+    setSubmitError(null)
+    setIsSubmitting(true)
     console.log(data)
 
-    // TODO: Implementar lógica de registro
+    try {
+      await register(data.name, data.email, data.password)
+    } catch (error) {
+      setSubmitError(getAuthErrorMessage(error))
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -120,7 +133,17 @@ export function RegisterScreen({ navigation }: Props) {
             )}
           />
 
-          <GradientButton title="Criar Conta" onPress={handleSubmit(onSubmit)} />
+          <GradientButton
+            title="Criar Conta"
+            onPress={handleSubmit(onSubmit)}
+            loading={isSubmitting}
+          />
+
+          {submitError ? (
+            <Text className="mt-3 text-center text-xs font-bold text-auth-error">
+              {submitError}
+            </Text>
+          ) : null}
         </View>
 
         <TouchableOpacity

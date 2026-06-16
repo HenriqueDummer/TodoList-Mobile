@@ -3,6 +3,7 @@
   "compilerOptions": {
     "ignoreDeprecations": "6.0",
     "baseUrl": ".",
+    "customConditions": ["react-native"],
     "paths": {
       "@/*": ["src/*"],
       "@components/*": ["src/components/*"],

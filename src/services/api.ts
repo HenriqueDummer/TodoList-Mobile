@@ -1,0 +1,72 @@
+import axios, { AxiosError } from 'axios'
+import type { User } from '@firebase/auth'
+
+import { apiBaseUrl } from '@/config/env'
+
+export type BackendUser = {
+  id: string
+  firebaseId: string
+  email: string
+  name: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export const api = axios.create({
+  baseURL: apiBaseUrl,
+})
+
+async function authHeaders(firebaseUser: User) {
+  const token = await firebaseUser.getIdToken()
+
+  return {
+    Authorization: `Bearer ${token}`,
+  }
+}
+
+export async function registerBackendUser(firebaseUser: User, name?: string) {
+  console.log(firebaseUser, name)
+  const { data } = await api.post<BackendUser>(
+    '/users',
+    name ? { name } : {},
+    {
+      headers: await authHeaders(firebaseUser),
+    },
+  )
+
+  return data
+}
+
+export async function getCurrentUser(firebaseUser: User) {
+  const { data } = await api.get<BackendUser>('/users/me', {
+    headers: await authHeaders(firebaseUser),
+  })
+
+  return data
+}
+
+export function isNotFoundError(error: unknown) {
+  return axios.isAxiosError(error) && error.response?.status === 404
+}
+
+export function getApiErrorMessage(error: unknown) {
+  if (axios.isAxiosError(error)) {
+    return getAxiosErrorMessage(error)
+  }
+
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return 'Não foi possível concluir a operação.'
+}
+
+function getAxiosErrorMessage(error: AxiosError<{ message?: string }>) {
+  const message = error.response?.data?.message
+
+  if (Array.isArray(message)) {
+    return message[0]
+  }
+
+  return message ?? 'Não foi possível conectar ao servidor.'
+}

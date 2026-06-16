@@ -1,26 +1,29 @@
-import { useLayoutEffect } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   KeyboardAvoidingView,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native'
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg'
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
 
 import { loginSchema, LoginFormData } from '../validation/loginSchema'
 import { AuthStackParamList } from '@/navigation/types'
-import { authGradientColors } from '../utils/authTheme'
 import { AppLogo } from '@/components/AppLogo'
 import { Input } from '@/components/Input'
+import { GradientButton } from '@/components/CustomButton'
+import { useAuth } from '@/contexts/AuthContext'
+import { getAuthErrorMessage } from '@/utils/authErrors'
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>
 
 export function LoginScreen({ navigation }: Props) {
+  const { login } = useAuth()
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const {
     control,
     handleSubmit,
@@ -35,8 +38,16 @@ export function LoginScreen({ navigation }: Props) {
 
   async function onSubmit(data: LoginFormData) {
     console.log(data)
+    setSubmitError(null)
+    setIsSubmitting(true)
 
-    // TODO: Implementar lógica de login
+    try {
+      await login(data.email, data.password)
+    } catch (error) {
+      setSubmitError(getAuthErrorMessage(error))
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -91,7 +102,17 @@ export function LoginScreen({ navigation }: Props) {
             )}
           />
 
-          <GradientButton title="Entrar" onPress={handleSubmit(onSubmit)} />
+          <GradientButton
+            title="Entrar"
+            onPress={handleSubmit(onSubmit)}
+            loading={isSubmitting}
+          />
+
+          {submitError ? (
+            <Text className="mt-3 text-center text-xs font-bold text-auth-error">
+              {submitError}
+            </Text>
+          ) : null}
         </View>
 
         <TouchableOpacity
@@ -106,34 +127,5 @@ export function LoginScreen({ navigation }: Props) {
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
-  )
-}
-
-function GradientButton({
-  title,
-  onPress,
-}: {
-  title: string
-  onPress: () => void
-}) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.86}
-      className="h-[46px] items-center justify-center overflow-hidden rounded-[10px]"
-    >
-      <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
-        <Defs>
-          <LinearGradient id="buttonGradient" x1="0" y1="0" x2="1" y2="0">
-            <Stop offset="0" stopColor={authGradientColors[0]} />
-            <Stop offset="1" stopColor={authGradientColors[1]} />
-          </LinearGradient>
-        </Defs>
-        <Rect width="100%" height="100%" rx={10} fill="url(#buttonGradient)" />
-      </Svg>
-      <Text className="text-[13px] font-extrabold text-auth-text">
-        {title}
-      </Text>
-    </TouchableOpacity>
   )
 }

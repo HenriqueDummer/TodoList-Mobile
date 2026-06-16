@@ -9,17 +9,24 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg'
 interface Props {
   title: string
   onPress: () => void
+  disabled?: boolean
+  loading?: boolean
 }
 
 export function GradientButton({
   title,
   onPress,
+  disabled = false,
+  loading = false,
 }: Props) {
   return (
     <TouchableOpacity
       onPress={onPress}
+      disabled={disabled || loading}
       activeOpacity={0.86}
-      className="mt-2 h-[46px] items-center justify-center overflow-hidden rounded-[10px]"
+      className={`mt-2 h-[46px] items-center justify-center overflow-hidden rounded-[10px] ${
+        disabled || loading ? 'opacity-70' : ''
+      }`}
     >
       <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
         <Defs>
@@ -31,7 +38,7 @@ export function GradientButton({
         <Rect width="100%" height="100%" rx={10} fill="url(#buttonGradient)" />
       </Svg>
       <Text className="text-[13px] font-extrabold text-auth-text">
-        {title}
+        {loading ? 'Carregando...' : title}
       </Text>
     </TouchableOpacity>
   )

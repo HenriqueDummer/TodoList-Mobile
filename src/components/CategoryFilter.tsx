@@ -1,10 +1,17 @@
 import { useState } from 'react'
-import { ScrollView, Text, TouchableOpacity, Image } from 'react-native'
+import type { ComponentProps } from 'react'
+import { ScrollView, Text, TouchableOpacity } from 'react-native'
+import { FontAwesome } from '@expo/vector-icons'
+
+import { colors } from '@/utils/authTheme'
+
+type CategoryIcon = ComponentProps<typeof FontAwesome>['name']
 
 type Category = {
   id: string
   label: string
-  image?: any
+  icon?: CategoryIcon
+  color?: string
 }
 
 type Props = {
@@ -36,17 +43,15 @@ export function CategoryFilter({ categories, onChange }: Props) {
             selected === cat.id ? 'bg-auth-blue' : 'bg-auth-surface'
           }`}
         >
-          {cat.image && (
-            <Image
-              source={cat.image} 
-              style={{
-                width: 20,
-                height: 20,
-        
-              }}
-              resizeMode="contain"
+          {cat.icon ? (
+            <FontAwesome
+              name={cat.icon}
+              size={16}
+              color={
+                selected === cat.id ? colors.text : (cat.color ?? colors.icon)
+              }
             />
-          )}
+          ) : null}
           <Text
             className={`text-[20px] ${
               selected === cat.id ? 'text-auth-text' : 'text-auth-muted'

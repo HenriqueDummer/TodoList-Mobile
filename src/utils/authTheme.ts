@@ -9,7 +9,8 @@ export const colors = {
   purple: '#A020F0',
   blue: '#2F80ED',
   error: '#FF6B6B',
-    // prioridades
+
+  // prioridades
   highBg:     '#2D1515',
   highText:   '#FF6B6B',
   mediumBg:   '#2D2515',
@@ -20,6 +21,13 @@ export const colors = {
   // status
   completed:  '#4CAF50',
   pending:    '#A020F0',
+
+  // categorias
+  categoryWork:     '#2F80ED',
+  categoryPersonal: '#4CAF50',
+  categoryShopping: '#F0A500',
+  categoryHealth:   '#FF6B6B',
+  categoryStudy:    '#A020F0',
 } as const
 
 export const authGradientColors = [colors.purple, colors.blue] as const

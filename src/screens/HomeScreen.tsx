@@ -6,13 +6,25 @@ import { LinearGradient } from 'expo-linear-gradient'
 
 import { Controller, useForm } from 'react-hook-form'
 import { Input } from '@/components/Input'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { FilterTabs } from '@/components/Filter'
 import { CategoryFilter } from '@/components/CategoryFilter'
 import { EmptyTasks } from '@/components/EmptyTasks'
 import { TaskCard } from '@/components/TaskCard'
 import { AddTaskScreen } from './AddTaskScreen'
-import { CategoriesScreen } from './AddCategories'
+import { CategoriesScreen, type IconsTypes } from './Categories'
+import { getCategories } from '@/services/api'
+
+type HomeCategory = {
+  id: string
+  label: string
+  icon?: IconsTypes
+  color?: string
+}
+
+const defaultCategories: HomeCategory[] = [
+  { id: 'all', label: 'all categories' },
+]
 
 export function HomeScreen() {
   const { user, firebaseUser, logout } = useAuth()
@@ -26,35 +38,34 @@ export function HomeScreen() {
     'all',
   )
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [categories, setCategories] =
+    useState<HomeCategory[]>(defaultCategories)
 
-  const categories = [
-    { id: 'all', label: 'all categories' },
-    {
-      id: 'work',
-      image: require('@/utils/icones/icone_trabalho.png'),
-      label: 'Work',
-    },
-    {
-      id: 'personal',
-      image: require('@/utils/icones/icone_casa.png'),
-      label: 'Personal',
-    },
-    {
-      id: 'study',
-      image: require('@/utils/icones/icone_livros.png'),
-      label: 'Study',
-    },
-    {
-      id: 'health',
-      image: require('@/utils/icones/icone_health.png'),
-      label: 'Health',
-    },
-    {
-      id: 'shopping',
-      image: require('@/utils/icones/icone_shopping.png'),
-      label: 'Shopping',
-    },
-  ]
+  useEffect(() => {
+    async function loadCategories() {
+      if (!firebaseUser) {
+        setCategories(defaultCategories)
+        return
+      }
+
+      try {
+        const data = await getCategories(firebaseUser)
+        setCategories([
+          ...defaultCategories,
+          ...data.map((category) => ({
+            id: category.id,
+            label: category.name,
+            icon: category.icon as IconsTypes,
+            color: category.color,
+          })),
+        ])
+      } catch {
+        setCategories(defaultCategories)
+      }
+    }
+
+    loadCategories()
+  }, [firebaseUser])
 
   const tasks: any[] = [
     {
@@ -80,6 +91,10 @@ export function HomeScreen() {
     },
   ]
 
+  const selectedCategoryLabel = categories.find(
+    (category) => category.id === selectedCategory,
+  )?.label
+
   const filteredTasks = tasks.filter((task) => {
     const matchesSearch = task.title
       .toLowerCase()
@@ -95,7 +110,7 @@ export function HomeScreen() {
     const matchesCategory =
       selectedCategory === 'all'
         ? true
-        : task.category.toLowerCase() === selectedCategory.toLowerCase()
+        : task.category.toLowerCase() === selectedCategoryLabel?.toLowerCase()
 
     return matchesSearch && matchesTab && matchesCategory
   })

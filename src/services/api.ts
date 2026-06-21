@@ -12,6 +12,21 @@ export type BackendUser = {
   updatedAt: string
 }
 
+export type BackendCategory = {
+  id: string
+  name: string
+  icon: string
+  color: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type CategoryPayload = {
+  name: string
+  icon: string
+  color: string
+}
+
 export const api = axios.create({
   baseURL: apiBaseUrl,
 })
@@ -26,13 +41,9 @@ async function authHeaders(firebaseUser: User) {
 
 export async function registerBackendUser(firebaseUser: User, name?: string) {
   console.log(firebaseUser, name)
-  const { data } = await api.post<BackendUser>(
-    '/users',
-    name ? { name } : {},
-    {
-      headers: await authHeaders(firebaseUser),
-    },
-  )
+  const { data } = await api.post<BackendUser>('/users', name ? { name } : {}, {
+    headers: await authHeaders(firebaseUser),
+  })
 
   return data
 }
@@ -43,6 +54,47 @@ export async function getCurrentUser(firebaseUser: User) {
   })
 
   return data
+}
+
+export async function getCategories(firebaseUser: User) {
+  const { data } = await api.get<BackendCategory[]>('/categories', {
+    headers: await authHeaders(firebaseUser),
+  })
+
+  return data
+}
+
+export async function createCategory(
+  firebaseUser: User,
+  payload: CategoryPayload,
+) {
+  const { data } = await api.post<BackendCategory>('/categories', payload, {
+    headers: await authHeaders(firebaseUser),
+  })
+
+  return data
+}
+
+export async function updateCategory(
+  firebaseUser: User,
+  id: string,
+  payload: Partial<CategoryPayload>,
+) {
+  const { data } = await api.patch<BackendCategory>(
+    `/categories/${id}`,
+    payload,
+    {
+      headers: await authHeaders(firebaseUser),
+    },
+  )
+
+  return data
+}
+
+export async function deleteCategory(firebaseUser: User, id: string) {
+  await api.delete(`/categories/${id}`, {
+    headers: await authHeaders(firebaseUser),
+  })
 }
 
 export function isNotFoundError(error: unknown) {

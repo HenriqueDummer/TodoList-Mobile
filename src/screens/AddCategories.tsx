@@ -1,143 +1,214 @@
-// @/screens/CategoriesScreen.tsx
-import { useState } from 'react'
-import { FlatList, Image, Text, TouchableOpacity, View } from 'react-native'
+import { useMemo, useState } from 'react'
+import { Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { FontAwesome } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
+
 import { authGradientColors, colors } from '@/utils/authTheme'
+import type { IconsTypes } from './Categories'
 
-type Category = {
-  id: string
-  label: string
-  image: any
-  color?: string
+type NewCategory = {
+  name: string
+  icon: IconsTypes
+  color: string
 }
-
-const initialCategories: Category[] = [
-  { id: 'work',     label: 'Work',     image: require('@/utils/icones/icone_trabalho.png'), color: colors.categoryWork     },
-  { id: 'personal', label: 'Personal', image: require('@/utils/icones/icone_casa.png'),     color: colors.categoryPersonal },
-  { id: 'shopping', label: 'Shopping', image: require('@/utils/icones/icone_shopping.png'), color: colors.categoryShopping },
-  { id: 'health',   label: 'Health',   image: require('@/utils/icones/icone_health.png'),   color: colors.categoryHealth   },
-  { id: 'study',    label: 'Study',    image: require('@/utils/icones/icone_livros.png'),   color: colors.categoryStudy    },
-]
 
 type Props = {
   onBack: () => void
+  onSave: (category: NewCategory) => void
+  initialCategory?: NewCategory
+  isSaving?: boolean
 }
 
-export function CategoriesScreen({ onBack }: Props) {
-  const [categories, setCategories] = useState<Category[]>(initialCategories)
+const icons: IconsTypes[] = [
+  'briefcase',
+  'home',
+  'shopping-cart',
+  'heart',
+  'book',
+  'plane',
+  'paint-brush',
+  'cutlery',
+  'gamepad',
+  'sticky-note',
+]
 
-  function handleDelete(id: string) {
-    setCategories((prev) => prev.filter((c) => c.id !== id))
+export type CategoriesColorOptions =
+  | '#2F80ED'
+  | '#4CAF50'
+  | '#F0A500'
+  | '#FF6B6B'
+  | '#8357EA'
+  | '#EC4899'
+  | '#06B6D4'
+  | '#84CC16'
+  | '#F97316'
+  | '#6366F1'
+
+export const colorOptions: CategoriesColorOptions[] = [
+  '#2F80ED',
+  '#4CAF50',
+  '#F0A500',
+  '#FF6B6B',
+  '#8357EA',
+  '#EC4899',
+  '#06B6D4',
+  '#84CC16',
+  '#F97316',
+  '#6366F1',
+]
+
+export function AddCategoriesScreen({
+  onBack,
+  onSave,
+  initialCategory,
+  isSaving = false,
+}: Props) {
+  const [name, setName] = useState(initialCategory?.name ?? '')
+  const [selectedIcon, setSelectedIcon] = useState<IconsTypes>(
+    initialCategory?.icon ?? 'briefcase',
+  )
+  const [selectedColor, setSelectedColor] = useState<string>(
+    initialCategory?.color ?? colors.categoryWork,
+  )
+
+  const canSubmit = useMemo(() => name.trim().length > 0, [name])
+
+  function handleSubmit() {
+    const trimmedName = name.trim()
+
+    if (!trimmedName || isSaving) {
+      return
+    }
+
+    onSave({
+      name: trimmedName,
+      icon: selectedIcon,
+      color: selectedColor,
+    })
   }
 
   return (
-    <View className="flex-1 bg-auth-background px-6 py-14">
-      <View className="flex-row items-center justify-between mb-1 px-2">
-        <View className="flex-row items-center gap-4">
-          <TouchableOpacity onPress={onBack}>
-            <FontAwesome
-              name="arrow-left"
-              size={20}
-              color={colors.mutedText}
-              style={{ marginLeft: 20 }}
-            />
-          </TouchableOpacity>
-          <Text
-            className="font-extrabold text-auth-text"
-            style={{ fontSize: 30, marginLeft: 30 }}
-          >
-            Categories
-          </Text>
-        </View>
+    <View className="flex-1 bg-auth-background px-4 pt-12">
+      <View className="-mx-4 flex-row items-center justify-between border-b border-auth-border px-4 pb-4">
+        <Text className="text-lg font-extrabold text-auth-text">
+          {initialCategory ? 'Edit Category' : 'New Category'}
+        </Text>
+        <TouchableOpacity activeOpacity={0.75} onPress={onBack}>
+          <FontAwesome name="close" size={22} color={colors.icon} />
+        </TouchableOpacity>
+      </View>
 
-        <TouchableOpacity activeOpacity={0.8}>
+      <View className="mt-6">
+        <Text className="mb-2 text-xs font-extrabold text-auth-text">
+          Category Name *
+        </Text>
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          placeholder="Enter category name"
+          placeholderTextColor={colors.placeholder}
+          className="h-11 rounded-xl border border-auth-border bg-auth-background px-4 text-sm text-auth-text"
+        />
+      </View>
+
+      <View className="mt-6">
+        <Text className="mb-3 text-xs font-extrabold text-auth-text">
+          Select Icon
+        </Text>
+        <View className="flex-row flex-wrap gap-3">
+          {icons.map((icon) => {
+            const isSelected = icon === selectedIcon
+
+            return (
+              <TouchableOpacity
+                key={icon}
+                activeOpacity={0.75}
+                onPress={() => setSelectedIcon(icon)}
+                style={{
+                  width: 43,
+                  height: 43,
+                  borderRadius: 10,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: isSelected
+                    ? `${selectedColor}26`
+                    : colors.background,
+                  borderWidth: 1,
+                  borderColor: isSelected ? selectedColor : colors.border,
+                }}
+              >
+                <FontAwesome
+                  name={icon}
+                  size={20}
+                  color={isSelected ? selectedColor : colors.mutedText}
+                />
+              </TouchableOpacity>
+            )
+          })}
+        </View>
+      </View>
+
+      <View className="mt-6">
+        <Text className="mb-3 text-xs font-extrabold text-auth-text">
+          Select Color
+        </Text>
+        <View className="flex-row flex-wrap gap-2">
+          {colorOptions.map((color) => {
+            const isSelected = color === selectedColor
+
+            return (
+              <TouchableOpacity
+                key={color}
+                activeOpacity={0.75}
+                onPress={() => setSelectedColor(color)}
+                style={{
+                  width: 49,
+                  height: 43,
+                  borderRadius: 12,
+                  backgroundColor: color,
+                  borderWidth: isSelected ? 2 : 0,
+                  borderColor: colors.text,
+                }}
+              />
+            )
+          })}
+        </View>
+      </View>
+
+      <View className="mt-auto flex-row gap-3 pb-7">
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={onBack}
+          disabled={isSaving}
+          className="h-11 flex-1 items-center justify-center rounded-xl border border-auth-border bg-auth-background"
+        >
+          <Text className="text-sm font-extrabold text-auth-text">Cancel</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={handleSubmit}
+          disabled={!canSubmit || isSaving}
+          className="flex-1 overflow-hidden rounded-xl"
+          style={{ opacity: canSubmit && !isSaving ? 1 : 0.6 }}
+        >
           <LinearGradient
             colors={authGradientColors}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
+              height: 44,
               alignItems: 'center',
               justifyContent: 'center',
+              borderRadius: 12,
             }}
           >
-            <FontAwesome name="plus" size={16} color={colors.text} />
+            <Text className="text-sm font-extrabold text-auth-text">
+              {isSaving ? 'Saving...' : initialCategory ? 'Save' : 'Create'}
+            </Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
-
-      <Text
-        className="text-auth-muted text-[20px] mb-6 px-2"
-        style={{ marginLeft: 65, marginTop: 20 }}
-      >
-        {categories.length} categories
-      </Text>
-
-      <FlatList
-        data={categories}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={{ gap: 12 }}
-        contentContainerStyle={{ gap: 12 }}
-        showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <View
-            style={{
-              flex: 1,
-              maxWidth: '44%',
-              backgroundColor: colors.surface,
-              borderRadius: 20,
-              padding: 18,
-              borderWidth: 0.5,
-              borderColor: colors.border
-            }}
-          >
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginBottom: 12 }}>
-              <TouchableOpacity>
-                <FontAwesome name="pencil" size={24} color={colors.icon} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleDelete(item.id)}>
-                <FontAwesome name="trash" size={24} color={colors.icon} />
-              </TouchableOpacity>
-            </View>
-
-            <View
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 40,
-                backgroundColor: item.color,
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 24,
-                padding: 40,
-              }}
-            >
-              <Image
-                source={item.image}
-                style={{ width: 40, height: 40 }}
-                resizeMode="contain"
-              />
-            </View>
-
-            <Text className="text-auth-text font-extrabold text-[16px]">
-              {item.label}
-            </Text>
-
-            <View
-              style={{
-                height: 6,
-                borderRadius: 2,
-                backgroundColor: item.color,
-                marginTop: 12,
-              }}
-            />
-          </View>
-        )}
-      />
     </View>
   )
 }

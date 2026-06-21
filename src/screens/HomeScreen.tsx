@@ -1,38 +1,200 @@
-import { Text, TouchableOpacity, View } from 'react-native'
+import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 
 import { useAuth } from '@/contexts/AuthContext'
+import { authGradientColors } from '@/utils/authTheme'
+import { LinearGradient } from 'expo-linear-gradient'
+
+import { Controller, useForm } from 'react-hook-form'
+import { Input } from '@/components/Input'
+import { useState } from 'react'
+import { FilterTabs } from '@/components/Filter'
+import { CategoryFilter } from '@/components/CategoryFilter'
+import { EmptyTasks } from '@/components/EmptyTasks'
+import { TaskCard } from '@/components/TaskCard'
 
 export function HomeScreen() {
   const { user, firebaseUser, logout } = useAuth()
-  const displayName = user?.name ?? firebaseUser?.displayName ?? 'Usuário'
-  const email = user?.email ?? firebaseUser?.email
+  const userIcon = require('../utils/icones/icone_usuario.png')
+  const folderIcon = require('../utils/icones/icone_pasta.png')
+  const icone_mais = require('../utils/icones/icone_mais.png')
+  const numberOfTasks = 0
+  const { control, watch } = useForm()
+  const searchText = watch('search') ?? ''
+  const [selected, setSelected] = useState<'all' | 'pending' | 'completed'>(
+    'all',
+  )
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+
+  const categories = [
+    { id: 'all', label: 'all categories' },
+    {
+      id: 'work',
+      image: require('@/utils/icones/icone_trabalho.png'),
+      label: 'Work',
+    },
+    {
+      id: 'personal',
+      image: require('@/utils/icones/icone_casa.png'),
+      label: 'Personal',
+    },
+    {
+      id: 'study',
+      image: require('@/utils/icones/icone_livros.png'),
+      label: 'Study',
+    },
+    {
+      id: 'health',
+      image: require('@/utils/icones/icone_health.png'),
+      label: 'Health',
+    },
+    {
+      id: 'shopping',
+      image: require('@/utils/icones/icone_shopping.png'),
+      label: 'Shopping',
+    },
+  ]
+
+  const tasks: Task[] = [
+    {
+      id: '1',
+      title: 'Design app to-do list',
+      category: 'Weekly challenge',
+      priority: 'high',
+      completed: false,
+    },
+    {
+      id: '2',
+      title: 'Design web trading',
+      category: 'Weekly challenge',
+      priority: 'low',
+      completed: false,
+    },
+    {
+      id: '3',
+      title: 'Buy groceries',
+      category: 'Shopping',
+      priority: 'medium',
+      completed: true,
+    },
+  ]
+
+  const filteredTasks = tasks.filter((task) => {
+    const matchesSearch = task.title
+      .toLowerCase()
+      .includes(searchText.toLowerCase())
+
+    const matchesTab =
+      selected === 'all'
+        ? true
+        : selected === 'pending'
+          ? !task.completed
+          : task.completed
+
+    const matchesCategory =
+      selectedCategory === 'all'
+        ? true
+        : task.category.toLowerCase() === selectedCategory.toLowerCase()
+
+    return matchesSearch && matchesTab && matchesCategory
+  })
 
   return (
-    <View className="flex-1 justify-between bg-auth-background px-6 py-14">
-      <View>
-        <Text className="text-[28px] font-extrabold text-auth-text">
-          Olá, {displayName}
+    <View className="flex-1 bg-auth-background px-6 py-14">
+      <View className="px-6 mb-6">
+        <View className="flex-row  gap-3">
+          <LinearGradient
+            colors={authGradientColors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 30,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Image
+              source={userIcon}
+              style={{ width: 30, height: 30, tintColor: '#FFF' }}
+              resizeMode="contain"
+            />
+          </LinearGradient>
+          <Text className="flex-1 text-[28px] font-extrabold text-auth-text">
+            My tasks
+          </Text>
+          <Image
+            source={folderIcon}
+            style={{ width: 28, height: 28, tintColor: '#6b6a6a' }}
+          />
+        </View>
+        <Text className="text-[14px] text-auth-muted -mt-5 ml-20">
+          {numberOfTasks} total tasks
         </Text>
-        {email ? (
-          <Text className="mt-2 text-sm text-auth-muted">{email}</Text>
-        ) : null}
+        <View>
+          <Controller
+            name="search"
+            control={control}
+            render={({ field }) => (
+              <Input
+                label=""
+                icon="search"
+                placeholder="Search tasks..."
+                value={field.value || ''}
+                onChangeText={field.onChange}
+                autoCapitalize="none"
+              />
+            )}
+          />
+        </View>
+        <View className="items-center">
+          <FilterTabs onChange={(tab) => setSelected(tab)}/>
+        </View>
 
-        <View className="mt-10 rounded-[14px] border border-auth-border bg-auth-surface p-5">
-          <Text className="text-base font-extrabold text-auth-text">
-            Autenticação pronta
-          </Text>
-          <Text className="mt-2 text-sm leading-5 text-auth-muted">
-            Sua sessão Firebase está conectada ao usuário local da API.
-          </Text>
+        <View>
+          <CategoryFilter categories={categories} 
+          onChange={(id) => setSelectedCategory(id)}/>
         </View>
       </View>
 
+      <View className="flex-1 border-t-[2px] border-auth-border">
+        {numberOfTasks === 0 ? (
+          <EmptyTasks />
+        ) : (
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {filteredTasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onPress={() => console.log('task:', task.id)}
+              />
+            ))}
+          </ScrollView>
+        )}
+      </View>
       <TouchableOpacity
-        onPress={logout}
+        onPress={() => console.log('nova task')}
         activeOpacity={0.8}
-        className="h-[46px] items-center justify-center rounded-[10px] border border-auth-border bg-auth-surface"
+        style={{ position: 'absolute', bottom: 32, right: 24 }}
       >
-        <Text className="text-[13px] font-extrabold text-auth-text">Sair</Text>
+        <LinearGradient
+          colors={authGradientColors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: 30,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Image
+            source={icone_mais}
+            style={{ width: 30, height: 30, tintColor: '#FFF' }}
+            resizeMode="contain"
+          />
+        </LinearGradient>
       </TouchableOpacity>
     </View>
   )

@@ -13,7 +13,13 @@ import { EmptyTasks } from '@/components/EmptyTasks'
 import { TaskCard } from '@/components/TaskCard'
 import { AddTaskScreen } from './AddTaskScreen'
 import { CategoriesScreen, type IconsTypes } from './Categories'
-import { getCategories } from '@/services/api'
+import {
+  getCategories,
+  createTask,
+  getTasks,
+  type BackendCategory,
+  type BackendTask,
+} from '@/services/api'
 
 type HomeCategory = {
   id: string
@@ -27,11 +33,10 @@ const defaultCategories: HomeCategory[] = [
 ]
 
 export function HomeScreen() {
-  const { user, firebaseUser, logout } = useAuth()
+  const { firebaseUser, logout } = useAuth()
   const userIcon = require('../utils/icones/icone_usuario.png')
   const folderIcon = require('../utils/icones/icone_pasta.png')
   const icone_mais = require('../utils/icones/icone_mais.png')
-  const numberOfTasks = 0
   const { control, watch } = useForm()
   const searchText = watch('search') ?? ''
   const [selected, setSelected] = useState<'all' | 'pending' | 'completed'>(
@@ -40,6 +45,16 @@ export function HomeScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [categories, setCategories] =
     useState<HomeCategory[]>(defaultCategories)
+  const [isSaving, setIsSaving] = useState(false)
+  const [backendCategories, setBackendCategories] = useState<BackendCategory[]>(
+    [],
+  )
+  const [tasks, setTasks] = useState<BackendTask[]>([])
+  const numberOfTasks = tasks.length
+  const [screen, setScreen] = useState<'home' | 'addTask' | 'categories'>(
+    'home',
+  )
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     async function loadCategories() {
@@ -50,6 +65,7 @@ export function HomeScreen() {
 
       try {
         const data = await getCategories(firebaseUser)
+        setBackendCategories(data)
         setCategories([
           ...defaultCategories,
           ...data.map((category) => ({
@@ -65,35 +81,21 @@ export function HomeScreen() {
     }
 
     loadCategories()
-  }, [firebaseUser])
+  }, [firebaseUser, reloadKey])
 
-  const tasks: any[] = [
-    {
-      id: '1',
-      title: 'Design app to-do list',
-      category: 'Weekly challenge',
-      priority: 'high',
-      completed: false,
-    },
-    {
-      id: '2',
-      title: 'Design web trading',
-      category: 'Weekly challenge',
-      priority: 'low',
-      completed: false,
-    },
-    {
-      id: '3',
-      title: 'Buy groceries',
-      category: 'Shopping',
-      priority: 'medium',
-      completed: true,
-    },
-  ]
+  useEffect(() => {
+    async function loadTasks() {
+      if (!firebaseUser) return
+      try {
+        const data = await getTasks(firebaseUser)
+        setTasks(data)
+      } catch (error) {
+        console.error('Erro ao carregar tasks:', error)
+      }
+    }
 
-  const selectedCategoryLabel = categories.find(
-    (category) => category.id === selectedCategory,
-  )?.label
+    loadTasks()
+  }, [firebaseUser, reloadKey])
 
   const filteredTasks = tasks.filter((task) => {
     const matchesSearch = task.title
@@ -108,28 +110,41 @@ export function HomeScreen() {
           : task.completed
 
     const matchesCategory =
-      selectedCategory === 'all'
-        ? true
-        : task.category.toLowerCase() === selectedCategoryLabel?.toLowerCase()
+      selectedCategory === 'all' ? true : task.categoryId === selectedCategory
 
     return matchesSearch && matchesTab && matchesCategory
   })
 
-  const [screen, setScreen] = useState<'home' | 'addTask' | 'categories'>(
-    'home',
-  )
-
   if (screen === 'categories') {
-    return <CategoriesScreen onBack={() => setScreen('home')} />
+    return (
+      <CategoriesScreen
+        onBack={() => {
+          setReloadKey((k) => k + 1)
+          setScreen('home')
+        }}
+      />
+    )
   }
 
   if (screen === 'addTask') {
     return (
       <AddTaskScreen
         onBack={() => setScreen('home')}
-        onSave={(data) => {
-          console.log('nova task:', data)
-          setScreen('home')
+        categories={backendCategories} // ✅ categorias reais
+        isSaving={isSaving}
+        onSave={async (data) => {
+          if (!firebaseUser) return
+          try {
+            setIsSaving(true)
+            await createTask(firebaseUser, data)
+            const updatedTasks = await getTasks(firebaseUser)
+            setTasks(updatedTasks)
+            setScreen('home')
+          } catch (error) {
+            console.error('Erro ao criar task:', error)
+          } finally {
+            setIsSaving(false)
+          }
         }}
       />
     )
@@ -199,7 +214,7 @@ export function HomeScreen() {
       </View>
 
       <View className="flex-1 border-t-[2px] border-auth-border">
-        {numberOfTasks === 0 ? (
+        {filteredTasks.length === 0 ? (
           <EmptyTasks />
         ) : (
           <ScrollView showsVerticalScrollIndicator={false}>

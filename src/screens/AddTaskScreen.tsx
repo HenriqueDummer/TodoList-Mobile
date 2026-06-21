@@ -1,109 +1,101 @@
-// @/screens/AddTaskScreen.tsx
 import { useState } from 'react'
-import { Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { Text, TextInput, TouchableOpacity, View, ScrollView } from 'react-native'
 import { useForm, Controller } from 'react-hook-form'
 import { LinearGradient } from 'expo-linear-gradient'
 import { FontAwesome } from '@expo/vector-icons'
 import { authGradientColors, colors } from '@/utils/authTheme'
 import { Input } from '@/components/Input'
 import DateTimePicker from '@react-native-community/datetimepicker'
+import type { BackendCategory } from '@/services/api'
 
 type Priority = 'low' | 'medium' | 'high'
+
+type NewTask = {
+  title: string
+  description: string
+  completed: boolean
+  priority: Priority
+  dueDate: string
+  categoryId: string | null
+}
 
 type FormData = {
   title: string
   description: string
-  category: string
-  priority: Priority
-  dueDate: string
 }
-
-const categoryOptions = [
-  'No Category',
-  'Work',
-  'Personal',
-  'Study',
-  'Health',
-  'Shopping',
-]
 
 type Props = {
   onBack: () => void
-  onSave: (data: FormData) => void
+  onSave: (data: NewTask) => void
+  categories: BackendCategory[]
+  isSaving?: boolean
 }
 
-export function AddTaskScreen({ onBack, onSave }: Props) {
+const priorityConfig = {
+  low: { activeBg: colors.lowText },
+  medium: { activeBg: colors.mediumText },
+  high: { activeBg: colors.highText },
+}
+
+export function AddTaskScreen({ onBack, onSave, categories, isSaving = false }: Props) {
   const { control, handleSubmit } = useForm<FormData>({
     defaultValues: {
       title: '',
       description: '',
-      category: 'No Category',
-      priority: 'medium',
-      dueDate: new Date().toISOString().split('T')[0],
     },
   })
 
   const [priority, setPriority] = useState<Priority>('medium')
-  const [category, setCategory] = useState('No Category')
+  const [selectedCategory, setSelectedCategory] = useState<BackendCategory | null>(null)
   const [showCategories, setShowCategories] = useState(false)
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [date, setDate] = useState(new Date())
-  const priorityConfig = {
-    low: { bg: colors.lowBg, text: colors.lowText, activeBg: colors.lowText },
-    medium: {
-      bg: colors.mediumBg,
-      text: colors.mediumText,
-      activeBg: colors.mediumText,
-    },
-    high: {
-      bg: colors.highBg,
-      text: colors.highText,
-      activeBg: colors.highText,
-    },
-  }
+
   function onSubmit(data: FormData) {
-    onSave({ ...data, priority, category })
+    onSave({
+      title: data.title,
+      description: data.description,
+      completed: false,
+      priority,
+      dueDate: date.toISOString(),
+      categoryId: selectedCategory?.id ?? null,
+    })
   }
 
   return (
-    <View className="flex-1 bg-auth-background px-6 py-14">
-      <View className="flex-row items-center gap-4 mb-8">
+    <View className="flex-1 bg-auth-background">
+      {/* Header */}
+      <View className="flex-row items-center gap-4 px-6 pt-14 pb-4 border-b border-auth-border">
         <TouchableOpacity onPress={onBack}>
-          <FontAwesome
-            name="arrow-left"
-            size={20}
-            color={colors.mutedText}
-            style={{ marginLeft: 20 }}
-          />
+          <FontAwesome name="arrow-left" size={20} color={colors.mutedText} />
         </TouchableOpacity>
-        <Text
-          className="font-extrabold text-auth-text"
-          style={{ fontSize: 30, marginLeft: 30 }}
-        >
+        <Text className="font-extrabold text-auth-text" style={{ fontSize: 24 }}>
           Add New Task
         </Text>
       </View>
 
-      <View className="mt-10" border-t border-auth-border>
-        <Controller
-          name="title"
-          control={control}
-          rules={{ required: true }}
-          render={({ field, fieldState }) => (
-            <Input
-              label="Title *"
-              placeholder="Enter task title"
-              value={field.value}
-              onChangeText={field.onChange}
-              error={fieldState.error ? 'Title is required' : undefined}
-            />
-          )}
-        />
+      <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false}>
+        {/* Title */}
+        <View className="mt-6">
+          <Controller
+            name="title"
+            control={control}
+            rules={{ required: true }}
+            render={({ field, fieldState }) => (
+              <Input
+                label="Title *"
+                placeholder="Enter task title"
+                value={field.value}
+                onChangeText={field.onChange}
+                error={fieldState.error ? 'Title is required' : undefined}
+              />
+            )}
+          />
+        </View>
 
-        <View className="mb-5 mt-10">
-          <Text className="mb-2 text-l font-bold text-auth-text">
-            Description
-          </Text>
+        {/* Description */}
+        <View className="mt-6 mb-5">
+          <Text className="mb-2 text-sm font-bold text-auth-text">Description</Text>
           <Controller
             name="description"
             control={control}
@@ -123,7 +115,7 @@ export function AddTaskScreen({ onBack, onSave }: Props) {
                   padding: 18,
                   color: colors.text,
                   fontSize: 15,
-                  height: 150,
+                  height: 120,
                   textAlignVertical: 'top',
                 }}
               />
@@ -131,10 +123,11 @@ export function AddTaskScreen({ onBack, onSave }: Props) {
           />
         </View>
 
-        <View className="mb-5 mt-10">
+        {/* Category */}
+        <View className="mb-5" style={{ zIndex: 10 }}>
           <View className="flex-row items-center gap-2 mb-2">
             <FontAwesome name="tag" size={14} color={colors.mutedText} />
-            <Text className="text-1 font-bold text-auth-muted">Category</Text>
+            <Text className="text-sm font-bold text-auth-muted">Category</Text>
           </View>
           <TouchableOpacity
             onPress={() => setShowCategories(!showCategories)}
@@ -144,20 +137,25 @@ export function AddTaskScreen({ onBack, onSave }: Props) {
               borderWidth: 1,
               borderRadius: 15,
               padding: 13,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
             }}
-            className="flex-row items-center justify-between"
           >
-            <Text style={{ color: colors.text, fontSize: 13 }}>{category}</Text>
+            <View className="flex-row items-center gap-2">
+              {selectedCategory && (
+                <FontAwesome name={selectedCategory.icon as any} size={14} color={selectedCategory.color} />
+              )}
+              <Text style={{ color: colors.text, fontSize: 14 }}>
+                {selectedCategory?.name ?? 'No Category'}
+              </Text>
+            </View>
             <FontAwesome name="chevron-down" size={12} color={colors.icon} />
           </TouchableOpacity>
+
           {showCategories && (
             <View
               style={{
-                position: 'absolute',
-                top: 72, 
-                left: 0,
-                right: 0,
-                zIndex: 999,
                 backgroundColor: colors.surface,
                 borderColor: colors.border,
                 borderWidth: 1,
@@ -165,22 +163,24 @@ export function AddTaskScreen({ onBack, onSave }: Props) {
                 marginTop: 4,
               }}
             >
-              {categoryOptions.map((opt) => (
+              <TouchableOpacity
+                onPress={() => { setSelectedCategory(null); setShowCategories(false) }}
+                className="px-4 py-3 border-b border-auth-border"
+              >
+                <Text style={{ color: !selectedCategory ? colors.purple : colors.text, fontSize: 14 }}>
+                  No Category
+                </Text>
+              </TouchableOpacity>
+
+              {categories.map((cat) => (
                 <TouchableOpacity
-                  key={opt}
-                  onPress={() => {
-                    setCategory(opt)
-                    setShowCategories(false)
-                  }}
-                  className="px-4 py-3 border-b border-auth-border"
+                  key={cat.id}
+                  onPress={() => { setSelectedCategory(cat); setShowCategories(false) }}
+                  className="px-4 py-3 border-b border-auth-border flex-row items-center gap-2"
                 >
-                  <Text
-                    style={{
-                      color: category === opt ? colors.purple : colors.text,
-                      fontSize: 20,
-                    }}
-                  >
-                    {opt}
+                  <FontAwesome name={cat.icon as any} size={14} color={cat.color} />
+                  <Text style={{ color: selectedCategory?.id === cat.id ? colors.purple : colors.text, fontSize: 14 }}>
+                    {cat.name}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -188,39 +188,26 @@ export function AddTaskScreen({ onBack, onSave }: Props) {
           )}
         </View>
 
-        <View className="mb-5 mt-10">
+        {/* Priority */}
+        <View className="mb-5">
           <View className="flex-row items-center gap-2 mb-2">
-            <FontAwesome name="flag" size={20} color={colors.icon} />
-            <Text className="text-l font-bold text-auth-muted ml-2">
-              Priority
-            </Text>
+            <FontAwesome name="flag" size={14} color={colors.icon} />
+            <Text className="text-sm font-bold text-auth-muted">Priority</Text>
           </View>
           <View className="flex-row gap-3">
             {(['low', 'medium', 'high'] as Priority[]).map((p) => (
               <TouchableOpacity
                 key={p}
                 onPress={() => setPriority(p)}
-                className="flex-1 items-center"
+                className="flex-1 items-center py-3"
                 style={{
-                  backgroundColor:
-                    priority === p
-                      ? priorityConfig[p].activeBg
-                      : colors.surface,
+                  backgroundColor: priority === p ? priorityConfig[p].activeBg : colors.surface,
                   borderWidth: 1,
-                  borderColor:
-                    priority === p ? priorityConfig[p].activeBg : colors.border,
-                  padding: 20,
-                  borderRadius: 20,
+                  borderColor: priority === p ? priorityConfig[p].activeBg : colors.border,
+                  borderRadius: 12,
                 }}
               >
-                <Text
-                  style={{
-                    color: colors.text,
-                    fontSize: 20,
-                    fontWeight: '700',
-                    textTransform: 'capitalize',
-                  }}
-                >
+                <Text style={{ color: colors.text, fontSize: 14, fontWeight: '700', textTransform: 'capitalize' }}>
                   {p.charAt(0).toUpperCase() + p.slice(1)}
                 </Text>
               </TouchableOpacity>
@@ -228,12 +215,12 @@ export function AddTaskScreen({ onBack, onSave }: Props) {
           </View>
         </View>
 
-        <View className="mb-8 mt-10">
+        {/* Due Date */}
+        <View className="mb-8">
           <View className="flex-row items-center gap-2 mb-2">
             <FontAwesome name="calendar" size={14} color={colors.icon} />
-            <Text className="text-l font-bold text-auth-muted">Due Date</Text>
+            <Text className="text-sm font-bold text-auth-muted">Due Date</Text>
           </View>
-
           <TouchableOpacity
             onPress={() => setShowDatePicker(true)}
             style={{
@@ -241,16 +228,16 @@ export function AddTaskScreen({ onBack, onSave }: Props) {
               borderColor: colors.border,
               borderWidth: 1,
               borderRadius: 10,
-              padding: 20,
+              padding: 13,
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
             }}
           >
-            <Text style={{ color: colors.text, fontSize: 20 }}>
+            <Text style={{ color: colors.text, fontSize: 14 }}>
               {date.toLocaleDateString('pt-BR')}
             </Text>
-            <FontAwesome name="calendar" size={16} color={colors.icon} />
+            <FontAwesome name="calendar" size={14} color={colors.icon} />
           </TouchableOpacity>
 
           {showDatePicker && (
@@ -260,49 +247,42 @@ export function AddTaskScreen({ onBack, onSave }: Props) {
               display="default"
               onValueChange={(event, selectedDate) => {
                 setShowDatePicker(false)
-                if (selectedDate) {
-                  setDate(selectedDate)
-                }
+                if (selectedDate) setDate(selectedDate)
               }}
             />
           )}
         </View>
 
-        <View className="flex-row gap-3 mb-10 mt-10">
+        {/* Botões */}
+        <View className="flex-row gap-3 mb-10">
           <TouchableOpacity
             onPress={onBack}
-            className="flex-1 py-3 items-center border border-auth-border bg-auth-surface"
-            style={{ borderRadius: 20 }}
+            disabled={isSaving}
+            className="flex-1 items-center justify-center border border-auth-border bg-auth-surface"
+            style={{ borderRadius: 12, height: 48, opacity: isSaving ? 0.6 : 1 }}
           >
-            <Text
-              className="text-auth-text font-bold "
-              style={{ fontSize: 20, paddingVertical: 30 }}
-            >
-              Cancel
-            </Text>
+            <Text className="text-auth-text font-bold text-sm">Cancel</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={handleSubmit(onSubmit)}
+            disabled={isSaving}
             className="flex-1 overflow-hidden"
-            style={{ borderRadius: 20 }}
+            style={{ borderRadius: 12, opacity: isSaving ? 0.6 : 1 }}
           >
             <LinearGradient
               colors={authGradientColors}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={{ alignItems: 'center' }}
+              style={{ height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 12 }}
             >
-              <Text
-                className="text-auth-text font-bold "
-                style={{ fontSize: 20, padding: 30 }}
-              >
-                Save Task
+              <Text className="text-auth-text font-bold text-sm">
+                {isSaving ? 'Saving...' : 'Save Task'}
               </Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     </View>
   )
 }

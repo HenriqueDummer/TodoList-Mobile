@@ -12,6 +12,7 @@ import { CategoryFilter } from '@/components/CategoryFilter'
 import { EmptyTasks } from '@/components/EmptyTasks'
 import { TaskCard } from '@/components/TaskCard'
 import { AddTaskScreen } from './AddTaskScreen'
+import { CategoriesScreen } from './AddCategories'
 
 export function HomeScreen() {
   const { user, firebaseUser, logout } = useAuth()
@@ -99,20 +100,25 @@ export function HomeScreen() {
     return matchesSearch && matchesTab && matchesCategory
   })
 
-  const [screen, setScreen] = useState<'home' | 'addTask'>('home')
-
-if (screen === 'addTask') {
-  return (
-    <AddTaskScreen
-      onBack={() => setScreen('home')}
-      onSave={(data) => {
-        console.log('nova task:', data)
-        setScreen('home')
-      }}
-    />
+  const [screen, setScreen] = useState<'home' | 'addTask' | 'categories'>(
+    'home',
   )
-}
 
+  if (screen === 'categories') {
+    return <CategoriesScreen onBack={() => setScreen('home')} />
+  }
+
+  if (screen === 'addTask') {
+    return (
+      <AddTaskScreen
+        onBack={() => setScreen('home')}
+        onSave={(data) => {
+          console.log('nova task:', data)
+          setScreen('home')
+        }}
+      />
+    )
+  }
 
   return (
     <View className="flex-1 bg-auth-background px-6 py-14">
@@ -139,10 +145,12 @@ if (screen === 'addTask') {
           <Text className="flex-1 text-[28px] font-extrabold text-auth-text">
             My tasks
           </Text>
-          <Image
-            source={folderIcon}
-            style={{ width: 28, height: 28, tintColor: '#6b6a6a' }}
-          />
+          <TouchableOpacity onPress={() => setScreen('categories')}>
+            <Image
+              source={folderIcon}
+              style={{ width: 28, height: 28, tintColor: '#6b6a6a' }}
+            />
+          </TouchableOpacity>
         </View>
         <Text className="text-[14px] text-auth-muted -mt-5 ml-20">
           {numberOfTasks} total tasks
@@ -164,12 +172,14 @@ if (screen === 'addTask') {
           />
         </View>
         <View className="items-center">
-          <FilterTabs onChange={(tab) => setSelected(tab)}/>
+          <FilterTabs onChange={(tab) => setSelected(tab)} />
         </View>
 
         <View>
-          <CategoryFilter categories={categories} 
-          onChange={(id) => setSelectedCategory(id)}/>
+          <CategoryFilter
+            categories={categories}
+            onChange={(id) => setSelectedCategory(id)}
+          />
         </View>
       </View>
 

@@ -16,14 +16,14 @@ export function Input({
   ...inputProps
 }: TextInputProps & {
   label: string
-  icon: FieldIconName
+  icon?: FieldIconName
   error?: string
 }) {
   const [isFocused, setIsFocused] = useState(false)
 
   return (
     <View className="mb-[18px]">
-      <Text className="mb-2 text-xs font-bold text-auth-text">{label}</Text>
+      <Text className="mb-2 text-l font-bold text-auth-muted">{label}</Text>
       <View
         className={`h-[49px] flex-row items-center gap-3 rounded-[10px] border-2 bg-auth-surface px-[13px] ${
           error
@@ -49,7 +49,7 @@ export function Input({
             onBlur?.(event)
           }}
           placeholderTextColor={colors.placeholder}
-          className="h-full flex-1 text-[13px] text-auth-text"
+          className="h-full flex-1 text-[15px] text-auth-text"
         />
       </View>
       {error ? (

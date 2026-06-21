@@ -11,6 +11,7 @@ import { FilterTabs } from '@/components/Filter'
 import { CategoryFilter } from '@/components/CategoryFilter'
 import { EmptyTasks } from '@/components/EmptyTasks'
 import { TaskCard } from '@/components/TaskCard'
+import { AddTaskScreen } from './AddTaskScreen'
 
 export function HomeScreen() {
   const { user, firebaseUser, logout } = useAuth()
@@ -54,7 +55,7 @@ export function HomeScreen() {
     },
   ]
 
-  const tasks: Task[] = [
+  const tasks: any[] = [
     {
       id: '1',
       title: 'Design app to-do list',
@@ -97,6 +98,21 @@ export function HomeScreen() {
 
     return matchesSearch && matchesTab && matchesCategory
   })
+
+  const [screen, setScreen] = useState<'home' | 'addTask'>('home')
+
+if (screen === 'addTask') {
+  return (
+    <AddTaskScreen
+      onBack={() => setScreen('home')}
+      onSave={(data) => {
+        console.log('nova task:', data)
+        setScreen('home')
+      }}
+    />
+  )
+}
+
 
   return (
     <View className="flex-1 bg-auth-background px-6 py-14">
@@ -173,7 +189,7 @@ export function HomeScreen() {
         )}
       </View>
       <TouchableOpacity
-        onPress={() => console.log('nova task')}
+        onPress={() => setScreen('addTask')}
         activeOpacity={0.8}
         style={{ position: 'absolute', bottom: 32, right: 24 }}
       >

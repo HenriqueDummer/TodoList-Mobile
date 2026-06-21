@@ -22,6 +22,9 @@
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
-    "plugins": ["@react-native-vector-icons/fontawesome-free-solid"]
+    "plugins": [
+      "@react-native-vector-icons/fontawesome-free-solid",
+      "@react-native-community/datetimepicker"
+    ]
   }
 }

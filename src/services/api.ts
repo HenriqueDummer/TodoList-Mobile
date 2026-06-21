@@ -27,6 +27,31 @@ export type CategoryPayload = {
   color: string
 }
 
+export type BackendTask = {
+  id: string
+  title: string
+  description?: string | null
+  completed: boolean
+  priority: 'low' | 'medium' | 'high'
+  dueDate: string
+  categoryId?: string | null
+  category?: BackendCategory | null
+  userId: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type TaskPayload = {
+  title: string
+  description?: string
+  completed?: boolean
+  priority: 'low' | 'medium' | 'high'
+  dueDate: string
+  categoryId?: string | null
+}
+
+export type UpdateTaskPayload = Partial<TaskPayload>
+
 export const api = axios.create({
   baseURL: apiBaseUrl,
 })
@@ -93,6 +118,34 @@ export async function updateCategory(
 
 export async function deleteCategory(firebaseUser: User, id: string) {
   await api.delete(`/categories/${id}`, {
+    headers: await authHeaders(firebaseUser),
+  })
+}
+
+export async function getTasks(firebaseUser: User, query?: { status?: 'completed' | 'pending', categoryId?: string }) {
+  const { data } = await api.get<BackendTask[]>('/tasks', {
+    headers: await authHeaders(firebaseUser),
+    params: query,
+  })
+  return data
+}
+
+export async function createTask(firebaseUser: User, payload: TaskPayload) {
+  const { data } = await api.post<BackendTask>('/tasks', payload, {
+    headers: await authHeaders(firebaseUser),
+  })
+  return data
+}
+
+export async function updateTask(firebaseUser: User, id: string, payload: UpdateTaskPayload) {
+  const { data } = await api.patch<BackendTask>(`/tasks/${id}`, payload, {
+    headers: await authHeaders(firebaseUser),
+  })
+  return data
+}
+
+export async function deleteTask(firebaseUser: User, id: string) {
+  await api.delete(`/tasks/${id}`, {
     headers: await authHeaders(firebaseUser),
   })
 }

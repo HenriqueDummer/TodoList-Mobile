@@ -1,15 +1,8 @@
 import { colors } from '@/utils/authTheme'
 import { Text, TouchableOpacity, View } from 'react-native'
-
+import type { BackendTask } from '@/services/api'
 type Priority = 'high' | 'medium' | 'low'
 
-type Task = {
-  id: string
-  title: string
-  category: string
-  priority: Priority
-  completed: boolean
-}
 
 const priorityConfig: Record<Priority, { label: string; text: string }> = {
   high: { label: 'High', text: colors.highText },
@@ -18,7 +11,7 @@ const priorityConfig: Record<Priority, { label: string; text: string }> = {
 }
 
 type Props = {
-  task: Task
+  task: BackendTask
   onPress?: () => void
 }
 
@@ -46,11 +39,11 @@ export function TaskCard({ task, onPress }: Props) {
 
         <View className="flex-1">
           <Text className="text-[11px] text-auth-muted mb-1">
-            {task.category}
+            {task.category?.name ?? 'No Category'}
           </Text>
           <Text
             className={`text-[15px] font-extrabold ${
-              task.completed ? 'text-auth-text' : 'line-through text-auth-muted'
+              task.completed ? 'line-through text-auth-muted' : 'text-auth-text'
             }`}
           >
             {task.title}

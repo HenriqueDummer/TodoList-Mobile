@@ -64,7 +64,6 @@ export function AddTaskScreen({ onBack, onSave, categories, isSaving = false }: 
 
   return (
     <View className="flex-1 bg-auth-background">
-      {/* Header */}
       <View className="flex-row items-center gap-4 px-6 pt-14 pb-4 border-b border-auth-border">
         <TouchableOpacity onPress={onBack}>
           <FontAwesome name="arrow-left" size={20} color={colors.mutedText} />
@@ -93,7 +92,6 @@ export function AddTaskScreen({ onBack, onSave, categories, isSaving = false }: 
           />
         </View>
 
-        {/* Description */}
         <View className="mt-6 mb-5">
           <Text className="mb-2 text-sm font-bold text-auth-text">Description</Text>
           <Controller
@@ -123,7 +121,6 @@ export function AddTaskScreen({ onBack, onSave, categories, isSaving = false }: 
           />
         </View>
 
-        {/* Category */}
         <View className="mb-5" style={{ zIndex: 10 }}>
           <View className="flex-row items-center gap-2 mb-2">
             <FontAwesome name="tag" size={14} color={colors.mutedText} />
@@ -188,7 +185,6 @@ export function AddTaskScreen({ onBack, onSave, categories, isSaving = false }: 
           )}
         </View>
 
-        {/* Priority */}
         <View className="mb-5">
           <View className="flex-row items-center gap-2 mb-2">
             <FontAwesome name="flag" size={14} color={colors.icon} />
@@ -215,7 +211,6 @@ export function AddTaskScreen({ onBack, onSave, categories, isSaving = false }: 
           </View>
         </View>
 
-        {/* Due Date */}
         <View className="mb-8">
           <View className="flex-row items-center gap-2 mb-2">
             <FontAwesome name="calendar" size={14} color={colors.icon} />
@@ -253,7 +248,6 @@ export function AddTaskScreen({ onBack, onSave, categories, isSaving = false }: 
           )}
         </View>
 
-        {/* Botões */}
         <View className="flex-row gap-3 mb-10">
           <TouchableOpacity
             onPress={onBack}

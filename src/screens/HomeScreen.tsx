@@ -130,7 +130,7 @@ export function HomeScreen() {
     return (
       <AddTaskScreen
         onBack={() => setScreen('home')}
-        categories={backendCategories} // ✅ categorias reais
+        categories={backendCategories}
         isSaving={isSaving}
         onSave={async (data) => {
           if (!firebaseUser) return

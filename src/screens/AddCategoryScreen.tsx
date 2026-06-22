@@ -4,7 +4,7 @@ import { FontAwesome } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 
 import { authGradientColors, colors } from '@/utils/authTheme'
-import type { IconsTypes } from './Categories'
+import type { IconsTypes } from './CategoriesScreen'
 
 type NewCategory = {
   name: string
@@ -32,19 +32,7 @@ const icons: IconsTypes[] = [
   'sticky-note',
 ]
 
-export type CategoriesColorOptions =
-  | '#2F80ED'
-  | '#4CAF50'
-  | '#F0A500'
-  | '#FF6B6B'
-  | '#8357EA'
-  | '#EC4899'
-  | '#06B6D4'
-  | '#84CC16'
-  | '#F97316'
-  | '#6366F1'
-
-export const colorOptions: CategoriesColorOptions[] = [
+export const colorOptions = [
   '#2F80ED',
   '#4CAF50',
   '#F0A500',

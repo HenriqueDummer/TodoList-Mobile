@@ -1,16 +1,33 @@
-import { useState } from 'react'
-import { Text, TextInput, TouchableOpacity, View, ScrollView } from 'react-native'
+import { useEffect, useState } from 'react'
+import {
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  ScrollView,
+} from 'react-native'
 import { useForm, Controller } from 'react-hook-form'
 import { LinearGradient } from 'expo-linear-gradient'
 import { FontAwesome } from '@expo/vector-icons'
 import { authGradientColors, colors } from '@/utils/authTheme'
 import { Input } from '@/components/Input'
 import DateTimePicker from '@react-native-community/datetimepicker'
-import type { BackendCategory } from '@/services/api'
+import {
+  createTask,
+  deleteTask,
+  getCategories,
+  updateTask,
+  type BackendCategory,
+} from '@/services/api'
+import { useAuth } from '@/contexts/AuthContext'
+import type { AppStackParamList } from '@/navigation/types'
+import { useNavigation, useRoute } from '@react-navigation/native'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
+import type { RouteProp } from '@react-navigation/native'
 
 type Priority = 'low' | 'medium' | 'high'
 
-type NewTask = {
+export type TaskFormPayload = {
   title: string
   description: string
   completed: boolean
@@ -24,53 +41,144 @@ type FormData = {
   description: string
 }
 
-type Props = {
-  onBack: () => void
-  onSave: (data: NewTask) => void
-  categories: BackendCategory[]
-  isSaving?: boolean
-}
-
 const priorityConfig = {
   low: { activeBg: colors.lowText },
   medium: { activeBg: colors.mediumText },
   high: { activeBg: colors.highText },
 }
 
-export function AddTaskScreen({ onBack, onSave, categories, isSaving = false }: Props) {
+function formatDisplayDate(date: Date) {
+  return date.toLocaleDateString('en-US', {
+    month: '2-digit',
+    day: '2-digit',
+    year: 'numeric',
+  })
+}
+
+type TaskRoute = RouteProp<AppStackParamList, 'AddTask' | 'EditTask'>
+type TaskNavigation = NativeStackNavigationProp<AppStackParamList>
+
+export function AddTaskScreen() {
+  const { firebaseUser } = useAuth()
+  const navigation = useNavigation<TaskNavigation>()
+  const route = useRoute<TaskRoute>()
+  const task =
+    route.name === 'EditTask'
+      ? (route.params as AppStackParamList['EditTask']).task
+      : null
+  const isEditing = Boolean(task)
+  const initialDate = task?.dueDate ? new Date(task.dueDate) : new Date()
+  const initialCategory = task?.category ?? null
+
   const { control, handleSubmit } = useForm<FormData>({
     defaultValues: {
-      title: '',
-      description: '',
+      title: task?.title ?? '',
+      description: task?.description ?? '',
     },
   })
 
-  const [priority, setPriority] = useState<Priority>('medium')
-  const [selectedCategory, setSelectedCategory] = useState<BackendCategory | null>(null)
+  const [priority, setPriority] = useState<Priority>(task?.priority ?? 'medium')
+  const [completed, setCompleted] = useState(task?.completed ?? false)
+  const [selectedCategory, setSelectedCategory] =
+    useState<BackendCategory | null>(initialCategory)
+  const [categories, setCategories] = useState<BackendCategory[]>([])
   const [showCategories, setShowCategories] = useState(false)
   const [showDatePicker, setShowDatePicker] = useState(false)
-  const [date, setDate] = useState(new Date())
+  const [date, setDate] = useState(initialDate)
+  const [isSaving, setIsSaving] = useState(false)
 
-  function onSubmit(data: FormData) {
-    onSave({
+  useEffect(() => {
+    async function loadCategories() {
+      if (!firebaseUser) return
+
+      try {
+        const data = await getCategories(firebaseUser)
+        setCategories(data)
+
+        setSelectedCategory((currentCategory) => {
+          if (currentCategory || !task?.categoryId) {
+            return currentCategory
+          }
+
+          return (
+            data.find((category) => category.id === task.categoryId) ?? null
+          )
+        })
+      } catch (error) {
+        console.error('Erro ao carregar categorias:', error)
+      }
+    }
+
+    loadCategories()
+  }, [firebaseUser, task?.categoryId])
+
+  async function onSubmit(data: FormData) {
+    if (!firebaseUser || isSaving) return
+
+    const payload: TaskFormPayload = {
       title: data.title,
       description: data.description,
-      completed: false,
+      completed,
       priority,
       dueDate: date.toISOString(),
       categoryId: selectedCategory?.id ?? null,
-    })
+    }
+
+    try {
+      setIsSaving(true)
+
+      if (task) {
+        await updateTask(firebaseUser, task.id, payload)
+      } else {
+        await createTask(firebaseUser, payload)
+      }
+
+      navigation.goBack()
+    } catch (error) {
+      console.error('Erro ao salvar task:', error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!firebaseUser || !task || isSaving) return
+
+    try {
+      setIsSaving(true)
+      await deleteTask(firebaseUser, task.id)
+      navigation.goBack()
+    } catch (error) {
+      console.error('Erro ao deletar task:', error)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
     <View className="flex-1 bg-auth-background">
       <View className="flex-row items-center gap-4 px-6 pt-14 pb-4 border-b border-auth-border">
-        <TouchableOpacity onPress={onBack}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          disabled={isSaving}
+        >
           <FontAwesome name="arrow-left" size={20} color={colors.mutedText} />
         </TouchableOpacity>
-        <Text className="font-extrabold text-auth-text" style={{ fontSize: 24 }}>
-          Add New Task
+        <Text
+          className="flex-1 font-extrabold text-auth-text"
+          style={{ fontSize: 24 }}
+        >
+          {isEditing ? 'Edit Task' : 'Add New Task'}
         </Text>
+        {isEditing ? (
+          <TouchableOpacity
+            onPress={handleDelete}
+            disabled={isSaving}
+            hitSlop={10}
+          >
+            <FontAwesome name="trash-o" size={22} color={colors.icon} />
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false}>
@@ -93,7 +201,9 @@ export function AddTaskScreen({ onBack, onSave, categories, isSaving = false }: 
         </View>
 
         <View className="mt-6 mb-5">
-          <Text className="mb-2 text-sm font-bold text-auth-text">Description</Text>
+          <Text className="mb-2 text-sm font-bold text-auth-text">
+            Description
+          </Text>
           <Controller
             name="description"
             control={control}
@@ -121,6 +231,31 @@ export function AddTaskScreen({ onBack, onSave, categories, isSaving = false }: 
           />
         </View>
 
+        {isEditing ? (
+          <View className="mb-5">
+            <Text className="mb-2 text-sm font-bold text-auth-text">
+              Status
+            </Text>
+            <TouchableOpacity
+              onPress={() => setCompleted((value) => !value)}
+              disabled={isSaving}
+              className="items-center justify-center"
+              style={{
+                backgroundColor: completed ? colors.completed : colors.surface,
+                borderColor: completed ? colors.completed : colors.border,
+                borderWidth: 1,
+                borderRadius: 12,
+                height: 42,
+                opacity: isSaving ? 0.6 : 1,
+              }}
+            >
+              <Text className="text-sm font-extrabold text-auth-text">
+                {completed ? 'Completed' : 'Pending'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
         <View className="mb-5" style={{ zIndex: 10 }}>
           <View className="flex-row items-center gap-2 mb-2">
             <FontAwesome name="tag" size={14} color={colors.mutedText} />
@@ -141,7 +276,11 @@ export function AddTaskScreen({ onBack, onSave, categories, isSaving = false }: 
           >
             <View className="flex-row items-center gap-2">
               {selectedCategory && (
-                <FontAwesome name={selectedCategory.icon as any} size={14} color={selectedCategory.color} />
+                <FontAwesome
+                  name={selectedCategory.icon as any}
+                  size={14}
+                  color={selectedCategory.color}
+                />
               )}
               <Text style={{ color: colors.text, fontSize: 14 }}>
                 {selectedCategory?.name ?? 'No Category'}
@@ -161,10 +300,18 @@ export function AddTaskScreen({ onBack, onSave, categories, isSaving = false }: 
               }}
             >
               <TouchableOpacity
-                onPress={() => { setSelectedCategory(null); setShowCategories(false) }}
+                onPress={() => {
+                  setSelectedCategory(null)
+                  setShowCategories(false)
+                }}
                 className="px-4 py-3 border-b border-auth-border"
               >
-                <Text style={{ color: !selectedCategory ? colors.purple : colors.text, fontSize: 14 }}>
+                <Text
+                  style={{
+                    color: !selectedCategory ? colors.purple : colors.text,
+                    fontSize: 14,
+                  }}
+                >
                   No Category
                 </Text>
               </TouchableOpacity>
@@ -172,11 +319,26 @@ export function AddTaskScreen({ onBack, onSave, categories, isSaving = false }: 
               {categories.map((cat) => (
                 <TouchableOpacity
                   key={cat.id}
-                  onPress={() => { setSelectedCategory(cat); setShowCategories(false) }}
+                  onPress={() => {
+                    setSelectedCategory(cat)
+                    setShowCategories(false)
+                  }}
                   className="px-4 py-3 border-b border-auth-border flex-row items-center gap-2"
                 >
-                  <FontAwesome name={cat.icon as any} size={14} color={cat.color} />
-                  <Text style={{ color: selectedCategory?.id === cat.id ? colors.purple : colors.text, fontSize: 14 }}>
+                  <FontAwesome
+                    name={cat.icon as any}
+                    size={14}
+                    color={cat.color}
+                  />
+                  <Text
+                    style={{
+                      color:
+                        selectedCategory?.id === cat.id
+                          ? colors.purple
+                          : colors.text,
+                      fontSize: 14,
+                    }}
+                  >
                     {cat.name}
                   </Text>
                 </TouchableOpacity>
@@ -197,13 +359,24 @@ export function AddTaskScreen({ onBack, onSave, categories, isSaving = false }: 
                 onPress={() => setPriority(p)}
                 className="flex-1 items-center py-3"
                 style={{
-                  backgroundColor: priority === p ? priorityConfig[p].activeBg : colors.surface,
+                  backgroundColor:
+                    priority === p
+                      ? priorityConfig[p].activeBg
+                      : colors.surface,
                   borderWidth: 1,
-                  borderColor: priority === p ? priorityConfig[p].activeBg : colors.border,
+                  borderColor:
+                    priority === p ? priorityConfig[p].activeBg : colors.border,
                   borderRadius: 12,
                 }}
               >
-                <Text style={{ color: colors.text, fontSize: 14, fontWeight: '700', textTransform: 'capitalize' }}>
+                <Text
+                  style={{
+                    color: colors.text,
+                    fontSize: 14,
+                    fontWeight: '700',
+                    textTransform: 'capitalize',
+                  }}
+                >
                   {p.charAt(0).toUpperCase() + p.slice(1)}
                 </Text>
               </TouchableOpacity>
@@ -230,7 +403,7 @@ export function AddTaskScreen({ onBack, onSave, categories, isSaving = false }: 
             }}
           >
             <Text style={{ color: colors.text, fontSize: 14 }}>
-              {date.toLocaleDateString('pt-BR')}
+              {formatDisplayDate(date)}
             </Text>
             <FontAwesome name="calendar" size={14} color={colors.icon} />
           </TouchableOpacity>
@@ -250,10 +423,14 @@ export function AddTaskScreen({ onBack, onSave, categories, isSaving = false }: 
 
         <View className="flex-row gap-3 mb-10">
           <TouchableOpacity
-            onPress={onBack}
+            onPress={() => navigation.goBack()}
             disabled={isSaving}
             className="flex-1 items-center justify-center border border-auth-border bg-auth-surface"
-            style={{ borderRadius: 12, height: 48, opacity: isSaving ? 0.6 : 1 }}
+            style={{
+              borderRadius: 12,
+              height: 48,
+              opacity: isSaving ? 0.6 : 1,
+            }}
           >
             <Text className="text-auth-text font-bold text-sm">Cancel</Text>
           </TouchableOpacity>
@@ -268,10 +445,19 @@ export function AddTaskScreen({ onBack, onSave, categories, isSaving = false }: 
               colors={authGradientColors}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={{ height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 12 }}
+              style={{
+                height: 48,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 12,
+              }}
             >
               <Text className="text-auth-text font-bold text-sm">
-                {isSaving ? 'Saving...' : 'Save Task'}
+                {isSaving
+                  ? 'Saving...'
+                  : isEditing
+                    ? 'Update Task'
+                    : 'Save Task'}
               </Text>
             </LinearGradient>
           </TouchableOpacity>

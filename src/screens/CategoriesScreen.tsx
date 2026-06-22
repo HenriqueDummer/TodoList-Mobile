@@ -10,7 +10,7 @@ import {
 import { FontAwesome } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { authGradientColors, colors } from '@/utils/authTheme'
-import { AddCategoriesScreen } from './AddCategories'
+import { AddCategoriesScreen } from './AddCategoryScreen'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   createCategory,
@@ -21,6 +21,8 @@ import {
   type BackendCategory,
   type CategoryPayload,
 } from '@/services/api'
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import type { AppStackParamList } from '@/navigation/types'
 
 export type IconsTypes = ComponentProps<typeof FontAwesome>['name']
 
@@ -31,11 +33,9 @@ type Category = {
   color: string
 }
 
-type Props = {
-  onBack: () => void
-}
+type Props = NativeStackScreenProps<AppStackParamList, 'Categories'>
 
-export function CategoriesScreen({ onBack }: Props) {
+export function CategoriesScreen({ navigation }: Props) {
   const { firebaseUser } = useAuth()
   const [categories, setCategories] = useState<Category[]>([])
   const [isAdding, setIsAdding] = useState(false)
@@ -151,7 +151,7 @@ export function CategoriesScreen({ onBack }: Props) {
     <View className="flex-1 bg-auth-background px-5 pt-12">
       <View className="flex-row items-center justify-between">
         <View className="flex-row items-center gap-3">
-          <TouchableOpacity onPress={onBack}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
             <FontAwesome name="arrow-left" size={18} color={colors.mutedText} />
           </TouchableOpacity>
           <Text className="text-xl font-extrabold text-auth-text">
